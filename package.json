@@ -1,0 +1,22 @@
+{
+  "name": "hatpro-archon",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HATPro (DIF Hospitality & Travel Profile) reference implementation on Archon did:cid",
+  "scripts": {
+    "provision": "node scripts/provision.mjs",
+    "reset": "node scripts/provision.mjs --reset",
+    "verify": "node scripts/verify-flow.mjs",
+    "resort-api": "node services/resort-keymaster/server.mjs",
+    "issuer-api": "node services/issuer-api/server.mjs",
+    "test-supplier": "node scripts/test-supplier-api.mjs"
+  },
+  "dependencies": {
+    "@didcid/cipher": "0.2.13",
+    "@didcid/gatekeeper": "0.4.13",
+    "@didcid/keymaster": "0.4.13",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

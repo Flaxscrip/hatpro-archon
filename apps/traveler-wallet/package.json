@@ -1,0 +1,34 @@
+{
+  "name": "hatpro-traveler-wallet",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "config": "node ../../scripts/sync-app-config.mjs traveler-wallet",
+    "dev": "npm run config && vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@didcid/cipher": "0.2.13",
+    "@didcid/gatekeeper": "0.4.13",
+    "@didcid/keymaster": "0.4.13",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fontsource/roboto": "^5.2.10",
+    "@mui/icons-material": "^7.3.5",
+    "@mui/material": "^7.3.5",
+    "@uiw/react-json-view": "^2.0.0-alpha.39",
+    "buffer": "^6.0.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.16"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "node": "http://flaxlap.local:4222",
+  "registry": "hyperswarm",
+  "date": "2026-06-17",
+  "identities": {
+    "hatpro-registry": "did:cid:bagaaiera7spprwiyel5rli35uxmtsmi6gcwwfqqqegswd3sd22qw3cvckywa",
+    "hatpro-avery": "did:cid:bagaaierajrbeiglbgcengjxndfs4mj66csrqi6fjczfhmm35jhit57wenvoa",
+    "hatpro-resort": "did:cid:bagaaieravjrdw4ytza453gvfmohjbsrfr4g47ynogmzihc4tfcxhtkne4xxa",
+    "hatpro-gov": "did:cid:bagaaieraehmt7ohpuoovzzqlj424ccndw5vp2s7jifq3cfuzk3kydy2rijxa",
+    "hatpro-loyalty": "did:cid:bagaaierafzyhxwkujbtnoobwtfapxwoiseav6xos7h2zdaq76bqgxyaupaeq"
+  },
+  "schemas": {
+    "hatpro-profile-schema": "did:cid:bagaaieraxitfyqlqq73cmrbas3sskp6z2fpfsasx7wkq3c5qkahtkxkiyzra",
+    "hatpro-over18-schema": "did:cid:bagaaiera2272f6d72mudqeqo2bs6vr35hvkoq6echxnphgf5gxmrr7doz3pq",
+    "hatpro-loyalty-schema": "did:cid:bagaaierahfhfxgkprxtybhkdkiypatesyqf6nu3x7ffcx354tx4efellp3aq"
+  },
+  "groups": {
+    "hatpro-admin-group (authorized issuers)": "did:cid:bagaaieracqzlob5y3vnwmh6af5mjnl22ywshyazzwxb5uugfyednddut2p6q",
+    "hatpro-member-group (verifiers)": "did:cid:bagaaieraxqcetufo3h4aqj7kexnvvxolycv6ukyn7fdbgp5k5oovmussc6vq"
+  },
+  "groupMembers": {
+    "admin": ["hatpro-gov", "hatpro-loyalty"],
+    "member": ["hatpro-resort"]
+  },
+  "profileAsset": "did:cid:bagaaierafcqn4lo44mvazh6frimz6cfm3nbltkttx7qksz6fdrhji6r7elva",
+  "credentials": {
+    "avery-over18 (issued by gov)": "did:cid:bagaaieraclxckfzxzhpaujg4asbxnxuyo34yp6z6m6va72dcz7pzaoe2hmaa",
+    "avery-loyalty (issued by loyalty)": "did:cid:bagaaieraeiaceshi7oxkpniy3ighqvfj5aldzk5jkm22z67axbhswch645pq"
+  },
+  "exchange": {
+    "challenge (resort profile request)": "did:cid:bagaaieraapphzevjil66d2f7we6jquvlolwzqx7aovgi2c3kpkisascwe2wa",
+    "response (avery consent+presentation)": "did:cid:bagaaieraac7yu56yoqbimqjfdcp6awoojuju35iyoqnnjdc4kqqb4niazrsa",
+    "verification": { "requested": 2, "fulfilled": 2, "match": true, "responder": "hatpro-avery" }
+  },
+  "trustRegistryChecks": {
+    "gov in admin (issue authorized)": true,
+    "loyalty in admin (issue authorized)": true,
+    "resort in member (verify authorized)": true,
+    "avery in admin (NEGATIVE - traveler cannot issue)": false
+  }
+}

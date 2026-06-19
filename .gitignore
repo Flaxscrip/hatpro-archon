@@ -1,0 +1,9 @@
+node_modules/
+wallets/
+config/demo.json
+**/public/demo.json
+.env
+.env.local
+*.log
+dist/
+.DS_Store

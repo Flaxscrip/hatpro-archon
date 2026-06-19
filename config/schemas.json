@@ -1,0 +1,9 @@
+{
+  "_comment": "Schema DIDs are immutable and referenced by DID regardless of owning wallet. These were registered in Milestone 1 and carry over into the separate-wallet demo. To regenerate fresh schemas, run provision.mjs with --new-schemas.",
+  "registry": "hyperswarm",
+  "schemas": {
+    "hatproProfile": "did:cid:bagaaieraxitfyqlqq73cmrbas3sskp6z2fpfsasx7wkq3c5qkahtkxkiyzra",
+    "over18": "did:cid:bagaaiera2272f6d72mudqeqo2bs6vr35hvkoq6echxnphgf5gxmrr7doz3pq",
+    "loyaltyTier": "did:cid:bagaaierahfhfxgkprxtybhkdkiypatesyqf6nu3x7ffcx354tx4efellp3aq"
+  }
+}

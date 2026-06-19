@@ -1,0 +1,12 @@
+{
+  "node": "http://flaxlap.local:4222",
+  "registry": "hyperswarm",
+  "created": "2026-06-17",
+  "identities": {
+    "hatpro-registry": "did:cid:bagaaiera7spprwiyel5rli35uxmtsmi6gcwwfqqqegswd3sd22qw3cvckywa",
+    "hatpro-avery": "did:cid:bagaaierajrbeiglbgcengjxndfs4mj66csrqi6fjczfhmm35jhit57wenvoa",
+    "hatpro-resort": "did:cid:bagaaieravjrdw4ytza453gvfmohjbsrfr4g47ynogmzihc4tfcxhtkne4xxa",
+    "hatpro-gov": "did:cid:bagaaieraehmt7ohpuoovzzqlj424ccndw5vp2s7jifq3cfuzk3kydy2rijxa",
+    "hatpro-loyalty": "did:cid:bagaaierafzyhxwkujbtnoobwtfapxwoiseav6xos7h2zdaq76bqgxyaupaeq"
+  }
+}
