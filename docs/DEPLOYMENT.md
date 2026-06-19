@@ -7,12 +7,18 @@ services, kept alive by systemd. Assumes the repo at `/opt/hatpro-archon` and th
 ## URL map
 | Public path | Serves |
 |---|---|
-| `/` | traveler-wallet (dist) |
+| `/` | welcome page (`/var/www/hatpro/index.html`, from `deploy/welcome/`) |
+| `/traveler/` | traveler-wallet (dist) |
 | `/supplier/` | supplier-console (dist) |
 | `/registry/` | registry-explorer (dist) |
 | `/resort-api/*` → `127.0.0.1:4326` | resort keymaster API |
 | `/issuer-api/*` → `127.0.0.1:4327` | issuer API |
 | `/trust-registry/*` → `127.0.0.1:4260` | TRQP trust registry |
+
+The welcome page links to the three apps. Deploy it with:
+```bash
+sudo cp deploy/welcome/index.html /var/www/hatpro/index.html
+```
 
 The in-browser traveler wallet talks to the **public gatekeeper** `https://archon.technology`
 directly (set in `apps/traveler-wallet/.env.production`). Backend services talk to the node
@@ -58,7 +64,8 @@ sudo certbot --nginx -d hatpro.archon.technology         # TLS
 DNS: point `hatpro.archon.technology` A record at this server first.
 
 ## Verify end-to-end
-- `https://hatpro.archon.technology/` → traveler wallet loads, creates an identity (incognito).
+- `https://hatpro.archon.technology/` → welcome page with links to the three apps.
+- `/traveler/` → wallet loads, creates an identity (incognito).
 - `/supplier/` → compose request; present in the wallet; verify → ACCEPTED.
 - `/registry/` → authorization matrix renders.
 

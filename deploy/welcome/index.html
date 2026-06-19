@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HATPro on Archon — Demo</title>
+  <style>
+    :root {
+      --teal: #0b6b6b; --navy: #2f4b7c; --indigo: #5e35b1;
+      --ink: #1f2733; --muted: #5b6675; --bg: #f5f7fa; --card: #fff; --line: #e3e8ef;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink); background: var(--bg); line-height: 1.55;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+    header {
+      background: linear-gradient(120deg, #0b6b6b, #2f4b7c 55%, #5e35b1);
+      color: #fff; padding: 48px 0 40px;
+    }
+    header .wrap { display: block; }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    .sub { font-size: 1.1rem; opacity: .92; max-width: 680px; }
+    .tag { display: inline-block; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase;
+           background: rgba(255,255,255,.16); padding: 4px 10px; border-radius: 999px; margin-bottom: 14px; }
+    main { padding: 36px 0 60px; }
+    .lead { font-size: 1.05rem; color: var(--muted); max-width: 720px; margin: 0 0 28px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px;
+      display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(20,30,50,.04);
+    }
+    .card .badge { font-size: 1.6rem; }
+    .card h3 { margin: 10px 0 4px; font-size: 1.15rem; }
+    .card .who { font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+    .card p { color: var(--muted); font-size: .95rem; flex-grow: 1; margin: 8px 0 16px; }
+    .card a.btn {
+      display: inline-block; text-align: center; text-decoration: none; color: #fff;
+      padding: 10px 14px; border-radius: 8px; font-weight: 600; font-size: .95rem;
+    }
+    .t .who { color: var(--teal); } .t a.btn { background: var(--teal); }
+    .s .who { color: var(--navy); } .s a.btn { background: var(--navy); }
+    .r .who { color: var(--indigo); } .r a.btn { background: var(--indigo); }
+    .flow {
+      margin: 40px 0 0; background: var(--card); border: 1px solid var(--line);
+      border-radius: 12px; padding: 24px 28px;
+    }
+    .flow h2 { margin: 0 0 6px; font-size: 1.25rem; }
+    .flow ol { margin: 14px 0 0; padding-left: 20px; }
+    .flow li { margin: 0 0 10px; }
+    .flow code { background: #eef1f6; padding: 1px 6px; border-radius: 5px; font-size: .9em; }
+    .note { margin-top: 20px; font-size: .9rem; color: var(--muted);
+            border-left: 3px solid var(--indigo); padding: 8px 14px; background: #faf8ff; border-radius: 0 8px 8px 0; }
+    footer { color: var(--muted); font-size: .85rem; padding: 24px 0 50px; text-align: center; }
+    a.inline { color: var(--navy); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <span class="tag">Reference implementation · DIF × Archon</span>
+      <h1>🧳 HATPro on Archon</h1>
+      <div class="sub">A working demo of the DIF <strong>Hospitality &amp; Travel Profile</strong> built on
+        Archon <code>did:cid</code> — travellers share verified, self-custodied data with suppliers,
+        privately and selectively.</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <p class="lead">
+      Three small apps play the three roles in a HATPro exchange. A traveller builds a profile and holds
+      credentials in their own browser; a supplier requests and verifies them; a trust registry decides
+      which credential issuers are trusted. No personal data is stored by the supplier.
+    </p>
+
+    <div class="cards">
+      <div class="card t">
+        <div class="badge">🧳</div>
+        <div class="who">Traveller</div>
+        <h3>Traveler Wallet</h3>
+        <p>Create your own self-custody identity, receive verified credentials, build a HATPro profile,
+           and consent to share it. Your keys never leave your browser.</p>
+        <a class="btn" href="/traveler/">Open the Traveler Wallet →</a>
+      </div>
+      <div class="card s">
+        <div class="badge">🏨</div>
+        <div class="who">Supplier</div>
+        <h3>Supplier Console</h3>
+        <p>Compose a profile request, then verify what a traveller presents — both the cryptographic proof
+           and each issuer's authority via the trust registry.</p>
+        <a class="btn" href="/supplier/">Open the Supplier Console →</a>
+      </div>
+      <div class="card r">
+        <div class="badge">🛡️</div>
+        <div class="who">Trust registry</div>
+        <h3>Registry Explorer</h3>
+        <p>See what the ToIP trust registry governs: who is authorized to issue or verify, in a live
+           authorization matrix and an interactive query tool.</p>
+        <a class="btn" href="/registry/">Open the Registry Explorer →</a>
+      </div>
+    </div>
+
+    <section class="flow">
+      <h2>Try the full flow</h2>
+      <p style="color:var(--muted);margin:.3rem 0 0;">About 3 minutes, two browser tabs.</p>
+      <ol>
+        <li>Open the <a class="inline" href="/traveler/">Traveler Wallet</a> and create your wallet (just a
+          name). You'll receive verified <em>Over-18</em> and <em>Loyalty</em> credentials automatically.</li>
+        <li>In the wallet's <strong>Profile</strong> tab, edit your preferences and <strong>Save</strong> —
+          this self-issues your HATPro profile.</li>
+        <li>In the <a class="inline" href="/supplier/">Supplier Console</a>, choose what to request and click
+          <strong>Create request</strong>; copy the challenge DID.</li>
+        <li>Back in the wallet's <strong>Requests</strong> tab, paste it → <strong>Review</strong> →
+          <strong>Consent &amp; present</strong>; copy the response DID.</li>
+        <li>In the Supplier Console, paste the response DID and <strong>Verify</strong> — you'll see
+          <strong>✓ ACCEPTED</strong>, with your verified credentials and your self-asserted profile.</li>
+      </ol>
+      <div class="note">
+        <strong>Demoing with others?</strong> Each person should use their own browser (or a private/incognito
+        window) so they get their own wallet — the supplier then receives each person's unique profile.
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    Built on <a class="inline" href="https://archon.technology">Archon</a> ·
+    HATPro by the <a class="inline" href="https://identity.foundation/">Decentralized Identity Foundation</a>
+    Hospitality &amp; Travel Working Group.
+  </footer>
+</body>
+</html>
