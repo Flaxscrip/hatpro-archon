@@ -54,13 +54,32 @@ const gatekeeper = new DrawbridgeClient();
 await gatekeeper.connect({ url: GATEKEEPER_URL });
 const cipher = new CipherNode();
 
+/**
+ * Retry a network operation on transient errors (5xx / connection blips). Public nodes sit
+ * behind a shared proxy that can briefly return 503 under load; a single blip shouldn't abort
+ * the whole provision. These ops didn't reach the backend (proxy-level failure), so retry is safe.
+ */
+async function withRetry(label, fn, { tries = 5, delay = 1500 } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    try { return await fn(); }
+    catch (err) {
+      const msg = String(err?.message || err);
+      const transient = /\b50[234]\b|Temporarily Unavailable|ECONNRESET|ETIMEDOUT|socket hang up|fetch failed|network/i.test(msg);
+      if (!transient || attempt >= tries) throw err;
+      console.log(`  ⟳ ${label}: transient error (attempt ${attempt}/${tries}), retrying in ${delay}ms…`);
+      await new Promise((r) => setTimeout(r, delay));
+      delay *= 2;
+    }
+  }
+}
+
 /** Build a Keymaster bound to one actor's own wallet file, seeded deterministically. */
 async function openActorWallet(name) {
   const wallet = new WalletJson(`${name}.json`, WALLET_DIR);
   const km = new Keymaster({ gatekeeper, wallet, cipher, defaultRegistry: REGISTRY, passphrase: PASSPHRASE });
-  await km.newWallet(ACTORS[name], true); // overwrite from deterministic seed
-  await km.recoverWallet();
-  const did = await km.createId(name, { registry: REGISTRY });
+  await km.newWallet(ACTORS[name], true); // overwrite from deterministic seed (local, no network)
+  await withRetry(`recover ${name}`, () => km.recoverWallet());
+  const did = await withRetry(`create ${name}`, () => km.createId(name, { registry: REGISTRY }));
   return { km, did };
 }
 
@@ -84,11 +103,11 @@ async function main() {
 
   // 2) Trust-registry groups (owned by the registry wallet)
   const reg = actor['hatpro-registry'].km;
-  const adminGroup = await reg.createGroup('hatpro-admin', { registry: REGISTRY, alias: 'hatpro-admin' });
-  const memberGroup = await reg.createGroup('hatpro-member', { registry: REGISTRY, alias: 'hatpro-member' });
-  await reg.addGroupMember(adminGroup, actor['hatpro-gov'].did);
-  await reg.addGroupMember(adminGroup, actor['hatpro-loyalty'].did);
-  await reg.addGroupMember(memberGroup, actor['hatpro-resort'].did);
+  const adminGroup = await withRetry('create admin group', () => reg.createGroup('hatpro-admin', { registry: REGISTRY, alias: 'hatpro-admin' }));
+  const memberGroup = await withRetry('create member group', () => reg.createGroup('hatpro-member', { registry: REGISTRY, alias: 'hatpro-member' }));
+  await withRetry('add gov to admin', () => reg.addGroupMember(adminGroup, actor['hatpro-gov'].did));
+  await withRetry('add loyalty to admin', () => reg.addGroupMember(adminGroup, actor['hatpro-loyalty'].did));
+  await withRetry('add resort to member', () => reg.addGroupMember(memberGroup, actor['hatpro-resort'].did));
   console.log(`\n✓ admin group  ${adminGroup}  (gov, loyalty)`);
   console.log(`✓ member group ${memberGroup}  (resort)`);
 
@@ -100,24 +119,24 @@ async function main() {
     schema: schemas.over18,
     claims: { over18: true, jurisdiction: 'US' },
   });
-  const over18Vc = await gov.issueCredential(over18Bound, { registry: REGISTRY });
+  const over18Vc = await withRetry('issue over18', () => gov.issueCredential(over18Bound, { registry: REGISTRY }));
 
   const loyalty = actor['hatpro-loyalty'].km;
   const loyaltyBound = await loyalty.bindCredential(averyDid, {
     schema: schemas.loyaltyTier,
     claims: { program: 'Seaside Rewards', tier: 'gold', memberSince: '2021' },
   });
-  const loyaltyVc = await loyalty.issueCredential(loyaltyBound, { registry: REGISTRY });
+  const loyaltyVc = await withRetry('issue loyalty', () => loyalty.issueCredential(loyaltyBound, { registry: REGISTRY }));
 
   const avery = actor['hatpro-avery'].km;
-  await avery.acceptCredential(over18Vc);
-  await avery.acceptCredential(loyaltyVc);
+  await withRetry('accept over18', () => avery.acceptCredential(over18Vc));
+  await withRetry('accept loyalty', () => avery.acceptCredential(loyaltyVc));
   console.log(`\n✓ over18 VC    ${over18Vc}  (gov → avery, accepted)`);
   console.log(`✓ loyalty VC   ${loyaltyVc}  (loyalty → avery, accepted)`);
 
   // Back up Avery to the registry so the browser traveler-wallet can recover the SAME
   // identity + held credentials from just the seed (recoverId), cross-impl (Node↔browser).
-  await avery.backupId('hatpro-avery');
+  await withRetry('backup avery', () => avery.backupId('hatpro-avery'));
   console.log(`✓ avery backed up to registry (browser recoverId enabled)`);
 
   // 4) Persist the wired-up demo config for the apps
