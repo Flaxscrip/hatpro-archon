@@ -18,6 +18,8 @@
  * archon keymaster-server. It keeps the demo self-contained and exposes far less than the
  * full key-custody REST surface. Swap in services/keymaster/server for max fidelity later.
  */
+import dotenv from 'dotenv';
+dotenv.config({ override: true }); // repo .env is the source of truth, even over a pre-set shell var
 import express from 'express';
 import cors from 'cors';
 import { readFileSync } from 'node:fs';
@@ -33,7 +35,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..');
 const WALLET_DIR = join(ROOT, 'wallets');
 
-const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://flaxlap.local:4222';
+const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://localhost:4222';
 const REGISTRY = process.env.ARCHON_DEFAULT_REGISTRY || 'hyperswarm';
 const PASSPHRASE = process.env.HATPRO_WALLET_PASSPHRASE || 'hatpro-demo-passphrase';
 const PORT = parseInt(process.env.RESORT_KEYMASTER_PORT || '4326', 10);

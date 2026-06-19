@@ -4,6 +4,8 @@
  *   resort-keymaster /profile-request  ->  traveler responds (avery wallet)  ->  /verify
  * Confirms the combined Archon-crypto + ToIP-trust verdict.
  */
+import dotenv from 'dotenv';
+dotenv.config({ override: true }); // repo .env is the source of truth, even over a pre-set shell var
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -18,7 +20,7 @@ const demo = JSON.parse(readFileSync(join(ROOT, 'config', 'demo.json'), 'utf-8')
 const RESORT_API = process.env.RESORT_API_URL || 'http://localhost:4326';
 const REGISTRY = process.env.ARCHON_DEFAULT_REGISTRY || 'hyperswarm';
 const PASSPHRASE = process.env.HATPRO_WALLET_PASSPHRASE || 'hatpro-demo-passphrase';
-const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://flaxlap.local:4222';
+const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://localhost:4222';
 
 const post = async (path, body) => (await fetch(`${RESORT_API}${path}`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),

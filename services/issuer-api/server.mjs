@@ -13,6 +13,8 @@
  *   GET  /health
  *   POST /onboard  { did, tier? }  ->  { over18, loyaltyTier }
  */
+import dotenv from 'dotenv';
+dotenv.config({ override: true }); // repo .env is the source of truth, even over a pre-set shell var
 import express from 'express';
 import cors from 'cors';
 import { readFileSync } from 'node:fs';
@@ -27,7 +29,7 @@ import DrawbridgeClient from '@didcid/gatekeeper/drawbridge';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const WALLET_DIR = join(ROOT, 'wallets');
 
-const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://flaxlap.local:4222';
+const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://localhost:4222';
 const REGISTRY = process.env.ARCHON_DEFAULT_REGISTRY || 'hyperswarm';
 const PASSPHRASE = process.env.HATPRO_WALLET_PASSPHRASE || 'hatpro-demo-passphrase';
 const PORT = parseInt(process.env.ISSUER_API_PORT || '4327', 10);

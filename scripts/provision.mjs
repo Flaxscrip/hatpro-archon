@@ -18,6 +18,8 @@
  * WARNING: the seeds below are PUBLIC, well-known BIP-39 test vectors. They make the
  * demo deterministic but provide ZERO security. Never use for anything but a local demo.
  */
+import dotenv from 'dotenv';
+dotenv.config({ override: true }); // repo .env is the source of truth, even over a pre-set shell var
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -33,7 +35,7 @@ const WALLET_DIR = join(ROOT, 'wallets');
 const CONFIG_DIR = join(ROOT, 'config');
 
 // --- env ---
-const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://flaxlap.local:4222';
+const GATEKEEPER_URL = process.env.ARCHON_GATEKEEPER_URL || 'http://localhost:4222';
 const REGISTRY = process.env.ARCHON_DEFAULT_REGISTRY || 'hyperswarm';
 const PASSPHRASE = process.env.HATPRO_WALLET_PASSPHRASE || 'hatpro-demo-passphrase';
 
