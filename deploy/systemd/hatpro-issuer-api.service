@@ -1,0 +1,17 @@
+[Unit]
+Description=HATPro issuer API (auto-issues verified credentials on traveler onboarding)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=flaxscrip
+WorkingDirectory=/opt/hatpro-archon
+# Reads .env from WorkingDirectory via dotenv. If you use nvm, replace /usr/bin/node
+# with the output of `which node`.
+ExecStart=/usr/bin/node services/issuer-api/server.mjs
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
