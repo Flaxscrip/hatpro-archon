@@ -2,14 +2,27 @@ import { useEffect, useState } from 'react';
 import {
   AppBar, Toolbar, Typography, Container, Box, Tabs, Tab, Card, CardContent, TextField,
   Button, Stack, Chip, MenuItem, FormControlLabel, Switch, Alert, CircularProgress, Divider, Link,
-  List, ListItem, ListItemText, IconButton, Collapse,
+  List, ListItem, ListItemText, IconButton, Collapse, Tooltip,
 } from '@mui/material';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import JsonView from '@uiw/react-json-view';
 import type Keymaster from '@didcid/keymaster';
 import { AppConfig, loadConfig } from './config';
 import { buildKeymaster, currentIdentity, createTraveler, saveProfileCredential, heldSchemas, resetWallet, Identity } from './keymaster';
 import { HatproProfile, sampleProfile, csv, parseCsv } from './hatproProfile';
 import { AliasEntry, loadAliases } from './aliases';
+import { setGatekeeper, resolverHref } from './resolver';
+
+/** Small icon-link that opens the DID resolver in a new tab. */
+function ResolveLink({ did }: { did: string }) {
+  return (
+    <Tooltip title="Resolve DID in a new tab">
+      <IconButton size="small" component="a" href={resolverHref(did)} target="_blank" rel="noopener" aria-label="resolve DID">
+        <TravelExploreRoundedIcon fontSize="inherit" />
+      </IconButton>
+    </Tooltip>
+  );
+}
 
 const short = (did: string) => (did ? `${did.slice(0, 18)}…${did.slice(-6)}` : '');
 
@@ -25,6 +38,7 @@ export default function App() {
       try {
         const c = await loadConfig();
         setCfg(c);
+        setGatekeeper(c.gatekeeperUrl);
         const k = await buildKeymaster(c);
         setKm(k);
         setIdentity(await currentIdentity(k));
@@ -210,7 +224,10 @@ function CredentialsTab({ km }: { km: Keymaster }) {
       {held.map(({ did, vc }) => (
         <Card key={did}><CardContent>
           <Typography variant="subtitle1">{vc?.type?.join(', ') || 'Credential'}</Typography>
-          <Typography variant="body2" color="text.secondary">issuer: {short(vc?.issuer || '')}</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">issuer: {short(vc?.issuer || '')}</Typography>
+            {vc?.issuer && <ResolveLink did={vc.issuer} />}
+          </Box>
           <Divider sx={{ my: 1 }} />
           {vc?.credentialSubject && <JsonView value={vc.credentialSubject} collapsed={1} displayDataTypes={false} />}
           <Field label="VC DID" value={did} mono />
@@ -251,6 +268,7 @@ function AliasesTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
             secondaryAction={
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Link component="button" variant="caption" onClick={() => navigator.clipboard.writeText(e.did)}>copy DID</Link>
+                <ResolveLink did={e.did} />
                 <IconButton edge="end" size="small" onClick={() => remove(e.alias)} aria-label="remove">✕</IconButton>
               </Box>
             }>
@@ -358,12 +376,14 @@ function RequestsTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
 }
 
 function Field({ label, value, mono, copy }: { label: string; value: string; mono?: boolean; copy?: boolean }) {
+  const isDid = value.startsWith('did:');
   return (
     <Box>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <Typography sx={{ fontFamily: mono ? 'monospace' : undefined, fontSize: mono ? 13 : undefined, wordBreak: 'break-all' }}>{value}</Typography>
         {copy && <Link component="button" variant="caption" onClick={() => navigator.clipboard.writeText(value)}>copy</Link>}
+        {isDid && <ResolveLink did={value} />}
       </Box>
     </Box>
   );
