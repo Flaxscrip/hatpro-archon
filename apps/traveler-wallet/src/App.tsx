@@ -76,7 +76,7 @@ export default function App() {
         {tab === 2 && <CredentialsTab km={km} />}
         {tab === 3 && <AliasesTab km={km} cfg={cfg} />}
         {tab === 4 && <RequestsTab km={km} cfg={cfg} />}
-        {tab === RESOLVER_TAB && <DidResolver km={km} target={resolveTarget} onResolve={resolve} />}
+        {tab === RESOLVER_TAB && <DidResolver resolveDid={(d) => km.resolveDID(d)} target={resolveTarget} onResolve={resolve} />}
       </Container>
     </ResolveContext.Provider>
   );

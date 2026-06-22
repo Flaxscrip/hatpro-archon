@@ -1,12 +1,36 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import {
   AppBar, Toolbar, Typography, Container, Box, Card, CardContent, Stack, Chip, TextField, MenuItem,
   Button, Alert, CircularProgress, Divider, Table, TableHead, TableBody, TableRow, TableCell, Tooltip,
+  Tabs, Tab, IconButton,
 } from '@mui/material';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import { AppConfig, loadConfig } from './config';
 import { getMetadata, authorize, Metadata, AuthorizationResult } from './api';
+import { DidResolver } from './DidResolver';
 
 const short = (did: string) => (did ? `${did.slice(0, 16)}…${did.slice(-6)}` : '');
+const RESOLVER_TAB = 1;
+
+const resolveViaGatekeeper = (gk: string) => async (did: string) => {
+  const res = await fetch(`${gk}/api/v1/did/${encodeURIComponent(did)}`);
+  if (!res.ok) throw new Error(`gatekeeper returned ${res.status}`);
+  return res.json();
+};
+
+const ResolveContext = createContext<(did: string) => void>(() => {});
+
+function ResolveLink({ did }: { did: string }) {
+  const resolve = useContext(ResolveContext);
+  if (!did) return null;
+  return (
+    <Tooltip title="Resolve this DID">
+      <IconButton size="small" onClick={() => resolve(did)} aria-label="resolve DID">
+        <TravelExploreRoundedIcon fontSize="inherit" />
+      </IconButton>
+    </Tooltip>
+  );
+}
 
 export default function App() {
   const [cfg, setCfg] = useState<AppConfig | null>(null);
@@ -28,27 +52,42 @@ export default function App() {
   if (!cfg || !meta) return <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mt: 10, gap: 2 }}>
     <CircularProgress /><Typography color="text.secondary">Connecting to trust registry…</Typography></Box>;
 
+  return <Explorer cfg={cfg} meta={meta} />;
+}
+
+function Explorer({ cfg, meta }: { cfg: AppConfig; meta: Metadata }) {
+  const [tab, setTab] = useState(0);
+  const [resolveTarget, setResolveTarget] = useState<string | null>(null);
+  const resolve = (did: string) => { setResolveTarget(did); setTab(RESOLVER_TAB); };
+
   return (
-    <>
+    <ResolveContext.Provider value={resolve}>
       <AppBar position="static" color="primary" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>🛡️ HATPro Trust Registry Explorer</Typography>
           <Chip label={`${meta.name} · ${short(meta.authority_id)}`} sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }} />
+          <Box sx={{ color: '#fff' }}><ResolveLink did={meta.authority_id} /></Box>
         </Toolbar>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="inherit" indicatorColor="secondary" sx={{ px: 2 }}>
+          <Tab label="Registry" /><Tab label="Resolver" />
+        </Tabs>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Typography color="text.secondary" paragraph>
-          A ToIP TRQP v2.0 trust registry answers one question — <em>“is this entity authorized to do
-          this action?”</em> — from Archon group membership. This is the layer the supplier consults to
-          decide which credential issuers it trusts.
-        </Typography>
-        <Stack spacing={3}>
-          <MetadataCard meta={meta} cfg={cfg} />
-          <MatrixCard cfg={cfg} />
-          <QueryCard cfg={cfg} />
-        </Stack>
+        {tab === 0 && <>
+          <Typography color="text.secondary" paragraph>
+            A ToIP TRQP v2.0 trust registry answers one question — <em>“is this entity authorized to do
+            this action?”</em> — from Archon group membership. This is the layer the supplier consults to
+            decide which credential issuers it trusts.
+          </Typography>
+          <Stack spacing={3}>
+            <MetadataCard meta={meta} cfg={cfg} />
+            <MatrixCard cfg={cfg} />
+            <QueryCard cfg={cfg} />
+          </Stack>
+        </>}
+        {tab === RESOLVER_TAB && <DidResolver resolveDid={resolveViaGatekeeper(cfg.gatekeeperUrl)} target={resolveTarget} onResolve={resolve} />}
       </Container>
-    </>
+    </ResolveContext.Provider>
   );
 }
 
@@ -117,7 +156,9 @@ function MatrixCard({ cfg }: { cfg: AppConfig }) {
           <TableBody>
             {cfg.entities.map((e) => (
               <TableRow key={e.did}>
-                <TableCell><Tooltip title={e.did}><span>{e.label}</span></Tooltip></TableCell>
+                <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Tooltip title={e.did}><span>{e.label}</span></Tooltip><ResolveLink did={e.did} />
+                </Box></TableCell>
                 {GATED_ACTIONS.map((a) => (
                   <TableCell key={a} align="center">
                     {grid[key(e.did, a)]

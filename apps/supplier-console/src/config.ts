@@ -20,6 +20,7 @@ export interface CatalogItem {
 
 export interface AppConfig {
   resortApiUrl: string;
+  gatekeeperUrl: string;
   registry: string;
   catalog: CatalogItem[];
   friendlyName: (did: string) => string;
@@ -30,6 +31,7 @@ export async function loadConfig(): Promise<AppConfig> {
   if (!res.ok) throw new Error('demo.json not found — run `npm run provision` then restart the app');
   const demo: DemoConfig = await res.json();
   const resortApiUrl = (import.meta.env.VITE_RESORT_API_URL as string) || 'http://localhost:4326';
+  const gatekeeperUrl = (import.meta.env.VITE_GATEKEEPER_URL as string) || demo.node;
 
   const catalog: CatalogItem[] = [
     { key: 'over18', label: 'Over-18 Credential', schema: demo.schemas.over18, issuer: demo.identities['hatpro-gov'], issuerLabel: 'Gov ID Authority' },
@@ -50,5 +52,5 @@ export async function loadConfig(): Promise<AppConfig> {
   };
   const friendlyName = (did: string) => names[did] || (did ? `${did.slice(0, 14)}…${did.slice(-6)}` : '');
 
-  return { resortApiUrl, registry: demo.registry, catalog, friendlyName };
+  return { resortApiUrl, gatekeeperUrl, registry: demo.registry, catalog, friendlyName };
 }

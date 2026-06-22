@@ -1,13 +1,37 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import {
   AppBar, Toolbar, Typography, Container, Box, Card, CardContent, TextField, Button, Stack,
-  Chip, Checkbox, FormControlLabel, Alert, CircularProgress, Divider, Link,
+  Chip, Checkbox, FormControlLabel, Alert, CircularProgress, Divider, Link, Tabs, Tab, Tooltip, IconButton,
 } from '@mui/material';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import JsonView from '@uiw/react-json-view';
 import { AppConfig, loadConfig } from './config';
 import { getId, createRequest, verify, VerifyResult, VerifyCredential } from './api';
+import { DidResolver } from './DidResolver';
 
 const short = (did: string) => (did ? `${did.slice(0, 16)}…${did.slice(-6)}` : '');
+const RESOLVER_TAB = 1;
+
+// Resolve a DID via the public gatekeeper (this app doesn't run keymaster).
+const resolveViaGatekeeper = (gk: string) => async (did: string) => {
+  const res = await fetch(`${gk}/api/v1/did/${encodeURIComponent(did)}`);
+  if (!res.ok) throw new Error(`gatekeeper returned ${res.status}`);
+  return res.json();
+};
+
+const ResolveContext = createContext<(did: string) => void>(() => {});
+
+function ResolveLink({ did }: { did: string }) {
+  const resolve = useContext(ResolveContext);
+  if (!did) return null;
+  return (
+    <Tooltip title="Resolve this DID">
+      <IconButton size="small" onClick={() => resolve(did)} aria-label="resolve DID">
+        <TravelExploreRoundedIcon fontSize="inherit" />
+      </IconButton>
+    </Tooltip>
+  );
+}
 
 export default function App() {
   const [cfg, setCfg] = useState<AppConfig | null>(null);
@@ -32,26 +56,41 @@ export default function App() {
     </Box>
   );
 
+  return <Console cfg={cfg} supplier={supplier} />;
+}
+
+function Console({ cfg, supplier }: { cfg: AppConfig; supplier: { name: string; did: string } }) {
+  const [tab, setTab] = useState(0);
+  const [resolveTarget, setResolveTarget] = useState<string | null>(null);
+  const resolve = (did: string) => { setResolveTarget(did); setTab(RESOLVER_TAB); };
+
   return (
-    <>
+    <ResolveContext.Provider value={resolve}>
       <AppBar position="static" color="primary" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>🏨 HATPro Supplier Console</Typography>
           <Chip label={`Seaside Resort · ${short(supplier.did)}`} sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }} />
+          <Box sx={{ color: '#fff' }}><ResolveLink did={supplier.did} /></Box>
         </Toolbar>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="inherit" indicatorColor="secondary" sx={{ px: 2 }}>
+          <Tab label="Console" /><Tab label="Resolver" />
+        </Tabs>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        <Typography color="text.secondary" paragraph>
-          The supplier's keys are held server-side by the resort keymaster API — this console is a
-          thin client. Compose a profile request for the traveler, then verify what they present:
-          both the cryptographic proof and each issuer's authority (via the trust registry).
-        </Typography>
-        <Stack spacing={3}>
-          <ComposeCard cfg={cfg} />
-          <VerifyCard cfg={cfg} />
-        </Stack>
+        {tab === 0 && <>
+          <Typography color="text.secondary" paragraph>
+            The supplier's keys are held server-side by the resort keymaster API — this console is a
+            thin client. Compose a profile request for the traveler, then verify what they present:
+            both the cryptographic proof and each issuer's authority (via the trust registry).
+          </Typography>
+          <Stack spacing={3}>
+            <ComposeCard cfg={cfg} />
+            <VerifyCard cfg={cfg} />
+          </Stack>
+        </>}
+        {tab === RESOLVER_TAB && <DidResolver resolveDid={resolveViaGatekeeper(cfg.gatekeeperUrl)} target={resolveTarget} onResolve={resolve} />}
       </Container>
-    </>
+    </ResolveContext.Provider>
   );
 }
 
@@ -99,6 +138,7 @@ function ComposeCard({ cfg }: { cfg: AppConfig }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography sx={{ fontFamily: 'monospace', fontSize: 13, wordBreak: 'break-all' }}>{challenge}</Typography>
             <Link component="button" variant="caption" onClick={() => navigator.clipboard.writeText(challenge)}>copy</Link>
+            <ResolveLink did={challenge} />
           </Box>
         </Box>
       )}
@@ -159,13 +199,17 @@ function CredentialRow({ c, cfg }: { c: VerifyCredential; cfg: AppConfig }) {
     <Box sx={{ p: 1.5, bgcolor: 'action.hover', borderRadius: 1 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
         <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>{cfg.friendlyName(c.schema)}</Typography>
+        <ResolveLink did={c.schema} />
         {c.selfAsserted
           ? <Chip size="small" color="warning" variant="outlined" label="self-asserted" />
           : <Check ok={c.issuerAuthorized} label={c.issuerAuthorized ? 'verified' : 'issuer NOT authorized'} />}
       </Box>
-      <Typography variant="caption" color="text.secondary">
-        {c.selfAsserted ? 'self-issued by the traveler (unverified)' : `issued by ${cfg.friendlyName(c.issuer)}`}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Typography variant="caption" color="text.secondary">
+          {c.selfAsserted ? 'self-issued by the traveler (unverified)' : `issued by ${cfg.friendlyName(c.issuer)}`}
+        </Typography>
+        <ResolveLink did={c.issuer} />
+      </Box>
       <Box sx={{ mt: 0.5 }}><JsonView value={claims} collapsed={2} displayDataTypes={false} /></Box>
     </Box>
   );

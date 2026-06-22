@@ -13,6 +13,7 @@ export interface Entity { label: string; did: string }
 
 export interface AppConfig {
   registryUrl: string;
+  gatekeeperUrl: string;
   authorityDid: string;
   entities: Entity[];
   actions: string[];
@@ -25,6 +26,7 @@ export async function loadConfig(): Promise<AppConfig> {
   if (!res.ok) throw new Error('demo.json not found — run `npm run provision` then restart the app');
   const demo: DemoConfig = await res.json();
   const registryUrl = (import.meta.env.VITE_TRUST_REGISTRY_URL as string) || 'http://localhost:4260';
+  const gatekeeperUrl = (import.meta.env.VITE_GATEKEEPER_URL as string) || demo.node;
 
   const entities: Entity[] = [
     { label: 'Gov ID Authority', did: demo.identities['hatpro-gov'] },
@@ -47,6 +49,7 @@ export async function loadConfig(): Promise<AppConfig> {
 
   return {
     registryUrl,
+    gatekeeperUrl,
     authorityDid: demo.identities['hatpro-registry'],
     entities,
     actions: ['issue', 'verify', 'hold', 'present', 'revoke'],

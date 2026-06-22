@@ -17,7 +17,8 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "@uiw/react-json-view": "^2.0.0-alpha.39"
   },
   "devDependencies": {
     "@types/react": "^19.2.6",
