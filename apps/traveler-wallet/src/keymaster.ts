@@ -10,6 +10,13 @@ import { AppConfig, WALLET_PASSPHRASE } from './config';
 import { seedAliases } from './aliases';
 
 export interface Identity { name: string; did: string }
+export interface OnboardResult { identity: Identity; verifiedIssued: boolean }
+
+/** Wipe this browser's wallet and reload — a clean slate for the next demo participant. */
+export function resetWallet(): void {
+  localStorage.clear();
+  location.reload();
+}
 
 /** Build the keymaster bound to this browser's wallet, creating an empty wallet on first run. */
 export async function buildKeymaster(cfg: AppConfig): Promise<Keymaster> {
@@ -39,22 +46,33 @@ export async function currentIdentity(km: Keymaster): Promise<Identity | null> {
  * Create a brand-new traveler identity in this browser, then auto-receive the verified
  * starter credentials (Over-18, Loyalty) from the issuer service and accept them.
  */
-export async function createTraveler(km: Keymaster, cfg: AppConfig, name: string): Promise<Identity> {
+export async function createTraveler(km: Keymaster, cfg: AppConfig, name: string): Promise<OnboardResult> {
   const did = await km.createId(name, { registry: cfg.registry });
   await km.setCurrentId(name);
 
   // Auto-issue verified credentials to the new identity (server-side trusted issuers).
+  // verifiedIssued=false means the issuer was unreachable — surface it so the operator knows
+  // the traveler won't have verified VCs (they can still self-assert a profile).
+  let verifiedIssued = false;
   try {
     const res = await fetch(`${cfg.issuerApiUrl}/onboard`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ did }),
     });
     const vcs = await res.json();
-    if (res.ok) {
+    if (res.ok && (vcs.over18 || vcs.loyaltyTier)) {
       for (const vc of [vcs.over18, vcs.loyaltyTier]) if (vc) await km.acceptCredential(vc);
+      verifiedIssued = true;
     }
-  } catch { /* issuer offline — traveler still has their identity + can self-assert a profile */ }
+  } catch { /* issuer offline */ }
 
-  return { name, did };
+  return { identity: { name, did }, verifiedIssued };
+}
+
+/** Schema DIDs of the credentials the current identity holds (for "do I have what's requested?"). */
+export async function heldSchemas(km: Keymaster): Promise<Set<string>> {
+  const dids: string[] = await km.listCredentials().catch(() => []);
+  const vcs = await Promise.all(dids.map((d) => km.getCredential(d).catch(() => null)));
+  return new Set(vcs.map((vc) => vc?.credentialSchema?.id).filter(Boolean) as string[]);
 }
 
 /**

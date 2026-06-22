@@ -7,7 +7,7 @@ import {
 import JsonView from '@uiw/react-json-view';
 import type Keymaster from '@didcid/keymaster';
 import { AppConfig, loadConfig } from './config';
-import { buildKeymaster, currentIdentity, createTraveler, saveProfileCredential, Identity } from './keymaster';
+import { buildKeymaster, currentIdentity, createTraveler, saveProfileCredential, heldSchemas, resetWallet, Identity } from './keymaster';
 import { HatproProfile, sampleProfile, csv, parseCsv } from './hatproProfile';
 import { AliasEntry, loadAliases } from './aliases';
 
@@ -67,11 +67,18 @@ function Onboarding({ km, cfg, onCreated }: { km: Keymaster; cfg: AppConfig; onC
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [pending, setPending] = useState<Identity | null>(null); // created, but issuer was unreachable
 
   const create = async () => {
     setBusy(true); setMsg('');
-    try { onCreated(await createTraveler(km, cfg, name.trim())); }
-    catch (e: any) { setMsg('Error: ' + (e?.message || e)); setBusy(false); }
+    try {
+      const { identity, verifiedIssued } = await createTraveler(km, cfg, name.trim());
+      if (verifiedIssued) { onCreated(identity); return; }
+      // Identity created but the issuer service was offline — let the operator decide.
+      setPending(identity);
+      setMsg("Your identity was created, but the credential issuer is unreachable, so you won't have verified credentials. You can still build and present a self-asserted profile.");
+    } catch (e: any) { setMsg('Error: ' + (e?.message || e)); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -84,12 +91,19 @@ function Onboarding({ km, cfg, onCreated }: { km: Keymaster; cfg: AppConfig; onC
         </Typography>
         <Stack spacing={2}>
           <TextField label="Your name" value={name} onChange={(e) => setName(e.target.value)} autoFocus
+            disabled={!!pending}
             onKeyDown={(e) => { if (e.key === 'Enter' && name.trim() && !busy) create(); }} />
-          <Box><Button variant="contained" size="large" onClick={create} disabled={!name.trim() || busy}>
-            {busy ? 'Creating your wallet…' : 'Create my wallet'}
-          </Button></Box>
+          {!pending ? (
+            <Box><Button variant="contained" size="large" onClick={create} disabled={!name.trim() || busy}>
+              {busy ? 'Creating your wallet…' : 'Create my wallet'}
+            </Button></Box>
+          ) : (
+            <Box><Button variant="contained" size="large" color="warning" onClick={() => onCreated(pending)}>
+              Continue anyway →
+            </Button></Box>
+          )}
           {busy && <Typography variant="caption" color="text.secondary">Creating identity and receiving verified credentials…</Typography>}
-          {msg && <Alert severity="error">{msg}</Alert>}
+          {msg && <Alert severity={pending ? 'warning' : 'error'}>{msg}</Alert>}
         </Stack>
       </CardContent></Card>
     </Container>
@@ -110,7 +124,17 @@ function IdentityTab({ cfg, identity, onNewTraveler }: { cfg: AppConfig; identit
         <Field label="Registry" value={cfg.registry} />
       </Stack>
       <Divider sx={{ my: 2 }} />
-      <Button variant="outlined" onClick={onNewTraveler}>Create another traveler</Button>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Button variant="outlined" onClick={onNewTraveler}>Create another traveler</Button>
+        <Button variant="outlined" color="error"
+          onClick={() => { if (confirm('Clear this wallet and start fresh? The current identity will be removed from this browser.')) resetWallet(); }}>
+          Start over (clear wallet)
+        </Button>
+      </Stack>
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+        “Start over” wipes this browser's wallet so the next person gets a clean slate — handy when
+        passing one device around at a demo.
+      </Typography>
     </CardContent></Card>
   );
 }
@@ -260,7 +284,8 @@ function RequestsTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
 
-  useEffect(() => { loadAliases(km, cfg).then((a) => setByDid(a.byDid)); }, []);
+  const [held, setHeld] = useState<Set<string>>(new Set());
+  useEffect(() => { loadAliases(km, cfg).then((a) => setByDid(a.byDid)); heldSchemas(km).then(setHeld); }, []);
   const name = (d: string) => byDid[d] || `${d.slice(0, 14)}…${d.slice(-6)}`;
 
   const review = async () => {
@@ -277,6 +302,8 @@ function RequestsTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
   };
 
   const creds: any[] = requested?.challenge?.credentials ?? [];
+  const missing = creds.filter((c) => c.schema && !held.has(c.schema));
+  const profileMissing = missing.some((c) => c.schema === cfg.schemas.hatproProfile);
 
   return (
     <Card><CardContent>
@@ -296,14 +323,27 @@ function RequestsTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
             <Typography variant="subtitle2" gutterBottom>This supplier is requesting:</Typography>
             {creds.length > 0 ? (
               <List dense sx={{ bgcolor: 'action.hover', borderRadius: 1 }}>
-                {creds.map((c, i) => (
-                  <ListItem key={i}>
-                    <ListItemText primary={name(c.schema)}
-                      secondary={c.issuers?.length ? `issued by ${c.issuers.map(name).join(', ')}` : 'any issuer (self-asserted allowed)'} />
-                  </ListItem>
-                ))}
+                {creds.map((c, i) => {
+                  const have = held.has(c.schema);
+                  return (
+                    <ListItem key={i} secondaryAction={
+                      <Chip size="small" color={have ? 'success' : 'default'} variant={have ? 'filled' : 'outlined'}
+                        label={have ? '✓ held' : 'not held'} />
+                    }>
+                      <ListItemText primary={name(c.schema)}
+                        secondary={c.issuers?.length ? `issued by ${c.issuers.map(name).join(', ')}` : 'any issuer (self-asserted allowed)'} />
+                    </ListItem>
+                  );
+                })}
               </List>
             ) : <Alert severity="info">Could not parse the request structure — see raw below.</Alert>}
+            {missing.length > 0 && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                You don't yet hold {missing.map((c) => name(c.schema)).join(', ')}. The presentation will be
+                incomplete and the supplier won't accept it.
+                {profileMissing && ' Save your profile in the Profile tab first.'}
+              </Alert>
+            )}
             <Link component="button" variant="caption" onClick={() => setShowRaw(!showRaw)} sx={{ mt: 1 }}>
               {showRaw ? 'hide raw JSON' : 'show raw JSON'}
             </Link>

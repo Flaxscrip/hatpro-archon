@@ -126,22 +126,27 @@ function VerifyCard({ cfg }: { cfg: AppConfig }) {
         <TextField label="Response DID" value={response} onChange={(e) => setResponse(e.target.value)} fullWidth />
         <Box><Button variant="contained" onClick={run} disabled={!response || busy}>{busy ? 'Verifying…' : 'Verify'}</Button></Box>
         {msg && <Alert severity="error">{msg}</Alert>}
-        {result && (
+        {result && (() => {
+          // Prefer the traveler's name from their presented profile over the raw DID.
+          const travelerName = result.credentials.find((c) => c.claims?.identity?.displayName)?.claims?.identity?.displayName
+            || cfg.friendlyName(result.responder);
+          return (
           <Box>
             <Alert severity={result.accepted ? 'success' : 'error'} sx={{ mb: 2, fontWeight: 600 }}>
-              {result.accepted ? '✓ ACCEPTED — verified presentation, all issuers trusted' : '✗ NOT ACCEPTED'}
+              {result.accepted ? `✓ ACCEPTED — verified presentation from ${travelerName}` : '✗ NOT ACCEPTED'}
             </Alert>
             <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: 'wrap', gap: 1 }}>
               <Check ok={result.cryptographicMatch} label={`Cryptographic match (${result.fulfilled}/${result.requested})`} />
               <Check ok={result.allIssuersTrusted} label="Verified issuers trusted" />
-              <Chip size="small" variant="outlined" label={`responder: ${cfg.friendlyName(result.responder)}`} />
+              <Chip size="small" variant="outlined" label={`from: ${travelerName}`} />
             </Stack>
             <Divider sx={{ my: 1 }} />
             <Stack spacing={1.5}>
               {result.credentials.map((c, i) => <CredentialRow key={i} c={c} cfg={cfg} />)}
             </Stack>
           </Box>
-        )}
+          );
+        })()}
       </Stack>
     </CardContent></Card>
   );
