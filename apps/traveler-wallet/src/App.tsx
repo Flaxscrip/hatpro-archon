@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import {
   AppBar, Toolbar, Typography, Container, Box, Tabs, Tab, Card, CardContent, TextField,
   Button, Stack, Chip, MenuItem, FormControlLabel, Switch, Alert, CircularProgress, Divider, Link,
@@ -11,13 +11,19 @@ import { AppConfig, loadConfig } from './config';
 import { buildKeymaster, currentIdentity, createTraveler, saveProfileCredential, heldSchemas, resetWallet, Identity } from './keymaster';
 import { HatproProfile, sampleProfile, csv, parseCsv } from './hatproProfile';
 import { AliasEntry, loadAliases } from './aliases';
-import { setGatekeeper, resolverHref } from './resolver';
+import { DidResolver } from './DidResolver';
 
-/** Small icon-link that opens the DID resolver in a new tab. */
+const RESOLVER_TAB = 5;
+
+// Lets any DID icon, anywhere in the tree, jump to the Resolver tab and resolve that DID.
+const ResolveContext = createContext<(did: string) => void>(() => {});
+
+/** Small icon-button next to a DID that opens it in the in-app Resolver tab. */
 function ResolveLink({ did }: { did: string }) {
+  const resolve = useContext(ResolveContext);
   return (
-    <Tooltip title="Resolve DID in a new tab">
-      <IconButton size="small" component="a" href={resolverHref(did)} target="_blank" rel="noopener" aria-label="resolve DID">
+    <Tooltip title="Resolve this DID">
+      <IconButton size="small" onClick={() => resolve(did)} aria-label="resolve DID">
         <TravelExploreRoundedIcon fontSize="inherit" />
       </IconButton>
     </Tooltip>
@@ -32,13 +38,13 @@ export default function App() {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [error, setError] = useState('');
   const [tab, setTab] = useState(0);
+  const [resolveTarget, setResolveTarget] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const c = await loadConfig();
         setCfg(c);
-        setGatekeeper(c.gatekeeperUrl);
         const k = await buildKeymaster(c);
         setKm(k);
         setIdentity(await currentIdentity(k));
@@ -50,15 +56,18 @@ export default function App() {
   if (!cfg || !km) return <Loading text="Starting wallet…" />;
   if (!identity) return <Onboarding km={km} cfg={cfg} onCreated={(id) => { setIdentity(id); setTab(0); }} />;
 
+  // Jump to the Resolver tab and resolve a DID — invoked by the resolve-icon anywhere.
+  const resolve = (did: string) => { setResolveTarget(did); setTab(RESOLVER_TAB); };
+
   return (
-    <>
+    <ResolveContext.Provider value={resolve}>
       <AppBar position="static" color="primary" elevation={0}>
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>🧳 HATPro Traveler Wallet</Typography>
           <Chip label={`${identity.name} · ${short(identity.did)}`} sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' }} />
         </Toolbar>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="inherit" indicatorColor="secondary" sx={{ px: 2 }}>
-          <Tab label="Identity" /><Tab label="Profile" /><Tab label="Credentials" /><Tab label="Address Book" /><Tab label="Requests" />
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="inherit" indicatorColor="secondary" sx={{ px: 2 }} variant="scrollable">
+          <Tab label="Identity" /><Tab label="Profile" /><Tab label="Credentials" /><Tab label="Address Book" /><Tab label="Requests" /><Tab label="Resolver" />
         </Tabs>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
@@ -67,8 +76,9 @@ export default function App() {
         {tab === 2 && <CredentialsTab km={km} />}
         {tab === 3 && <AliasesTab km={km} cfg={cfg} />}
         {tab === 4 && <RequestsTab km={km} cfg={cfg} />}
+        {tab === RESOLVER_TAB && <DidResolver km={km} target={resolveTarget} onResolve={resolve} />}
       </Container>
-    </>
+    </ResolveContext.Provider>
   );
 }
 
