@@ -77,7 +77,9 @@ function Console({ cfg, supplier }: { cfg: AppConfig; supplier: { name: string; 
         </Tabs>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        {tab === 0 && <>
+        {/* Both panels stay mounted (display toggle) so the Console keeps its request/verdict
+            state when you pop over to the Resolver and back. */}
+        <Box sx={{ display: tab === 0 ? 'block' : 'none' }}>
           <Typography color="text.secondary" paragraph>
             The supplier's keys are held server-side by the resort keymaster API — this console is a
             thin client. Compose a profile request for the traveler, then verify what they present:
@@ -87,8 +89,10 @@ function Console({ cfg, supplier }: { cfg: AppConfig; supplier: { name: string; 
             <ComposeCard cfg={cfg} />
             <VerifyCard cfg={cfg} />
           </Stack>
-        </>}
-        {tab === RESOLVER_TAB && <DidResolver resolveDid={resolveViaGatekeeper(cfg.gatekeeperUrl)} target={resolveTarget} onResolve={resolve} />}
+        </Box>
+        <Box sx={{ display: tab === RESOLVER_TAB ? 'block' : 'none' }}>
+          <DidResolver resolveDid={resolveViaGatekeeper(cfg.gatekeeperUrl)} target={resolveTarget} onResolve={resolve} />
+        </Box>
       </Container>
     </ResolveContext.Provider>
   );

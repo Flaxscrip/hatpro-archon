@@ -73,7 +73,9 @@ function Explorer({ cfg, meta }: { cfg: AppConfig; meta: Metadata }) {
         </Tabs>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        {tab === 0 && <>
+        {/* Keep both panels mounted so the Registry view (matrix, query result) survives a
+            trip to the Resolver and back. */}
+        <Box sx={{ display: tab === 0 ? 'block' : 'none' }}>
           <Typography color="text.secondary" paragraph>
             A ToIP TRQP v2.0 trust registry answers one question — <em>“is this entity authorized to do
             this action?”</em> — from Archon group membership. This is the layer the supplier consults to
@@ -84,8 +86,10 @@ function Explorer({ cfg, meta }: { cfg: AppConfig; meta: Metadata }) {
             <MatrixCard cfg={cfg} />
             <QueryCard cfg={cfg} />
           </Stack>
-        </>}
-        {tab === RESOLVER_TAB && <DidResolver resolveDid={resolveViaGatekeeper(cfg.gatekeeperUrl)} target={resolveTarget} onResolve={resolve} />}
+        </Box>
+        <Box sx={{ display: tab === RESOLVER_TAB ? 'block' : 'none' }}>
+          <DidResolver resolveDid={resolveViaGatekeeper(cfg.gatekeeperUrl)} target={resolveTarget} onResolve={resolve} />
+        </Box>
       </Container>
     </ResolveContext.Provider>
   );

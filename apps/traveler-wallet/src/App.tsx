@@ -71,12 +71,15 @@ export default function App() {
         </Tabs>
       </AppBar>
       <Container maxWidth="md" sx={{ py: 3 }}>
-        {tab === 0 && <IdentityTab cfg={cfg} identity={identity} onNewTraveler={() => setIdentity(null)} />}
-        {tab === 1 && <ProfileTab km={km} cfg={cfg} identity={identity} />}
-        {tab === 2 && <CredentialsTab km={km} />}
-        {tab === 3 && <AliasesTab km={km} cfg={cfg} />}
-        {tab === 4 && <RequestsTab km={km} cfg={cfg} />}
-        {tab === RESOLVER_TAB && <DidResolver resolveDid={(d) => km.resolveDID(d)} target={resolveTarget} onResolve={resolve} />}
+        {/* Panels stay mounted (display toggle) so transient state — a saved profile, a created
+            response, a resolver result — survives switching tabs. Data-backed tabs refresh via
+            their `active` prop. */}
+        <Box sx={{ display: tab === 0 ? 'block' : 'none' }}><IdentityTab cfg={cfg} identity={identity} onNewTraveler={() => setIdentity(null)} /></Box>
+        <Box sx={{ display: tab === 1 ? 'block' : 'none' }}><ProfileTab km={km} cfg={cfg} identity={identity} /></Box>
+        <Box sx={{ display: tab === 2 ? 'block' : 'none' }}><CredentialsTab km={km} active={tab === 2} /></Box>
+        <Box sx={{ display: tab === 3 ? 'block' : 'none' }}><AliasesTab km={km} cfg={cfg} /></Box>
+        <Box sx={{ display: tab === 4 ? 'block' : 'none' }}><RequestsTab km={km} cfg={cfg} active={tab === 4} /></Box>
+        <Box sx={{ display: tab === RESOLVER_TAB ? 'block' : 'none' }}><DidResolver resolveDid={(d) => km.resolveDID(d)} target={resolveTarget} onResolve={resolve} /></Box>
       </Container>
     </ResolveContext.Provider>
   );
@@ -218,15 +221,16 @@ function ProfileTab({ km, cfg, identity }: { km: Keymaster; cfg: AppConfig; iden
   );
 }
 
-function CredentialsTab({ km }: { km: Keymaster }) {
+function CredentialsTab({ km, active }: { km: Keymaster; active: boolean }) {
   const [held, setHeld] = useState<{ did: string; vc: any }[]>([]);
 
   useEffect(() => {
+    if (!active) return;
     (async () => {
       const dids: string[] = await km.listCredentials();
       setHeld(await Promise.all(dids.map(async (d) => ({ did: d, vc: await km.getCredential(d).catch(() => null) }))));
     })();
-  }, []);
+  }, [active]);
 
   return (
     <Stack spacing={2}>
@@ -303,7 +307,7 @@ function AliasesTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
   );
 }
 
-function RequestsTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
+function RequestsTab({ km, cfg, active }: { km: Keymaster; cfg: AppConfig; active: boolean }) {
   const [challenge, setChallenge] = useState('');
   const [requested, setRequested] = useState<any>(null);
   const [byDid, setByDid] = useState<Record<string, string>>({});
@@ -313,7 +317,9 @@ function RequestsTab({ km, cfg }: { km: Keymaster; cfg: AppConfig }) {
   const [msg, setMsg] = useState('');
 
   const [held, setHeld] = useState<Set<string>>(new Set());
-  useEffect(() => { loadAliases(km, cfg).then((a) => setByDid(a.byDid)); heldSchemas(km).then(setHeld); }, []);
+  useEffect(() => { loadAliases(km, cfg).then((a) => setByDid(a.byDid)); }, []);
+  // Refresh held credentials each time the tab is opened (e.g. after saving a profile).
+  useEffect(() => { if (active) heldSchemas(km).then(setHeld); }, [active]);
   const name = (d: string) => byDid[d] || `${d.slice(0, 14)}…${d.slice(-6)}`;
 
   const review = async () => {
